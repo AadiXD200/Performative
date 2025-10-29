@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍵 Matcha Man - Performative Male</title>
+    <link rel="stylesheet" href="/static/games/matcha/matcha-game.css">
+    <style>
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, rgba(255, 182, 217, 0.9) 0%, rgba(232, 197, 255, 0.9) 100%);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 105, 180, 0.5);
+            border-radius: 20px;
+            color: #2A2A34;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+            z-index: 1000;
+        }
+        .back-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 105, 180, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" onclick="sessionStorage.setItem('showGames', 'true'); window.location.href='/'; return false;" class="back-button">← Back to Games</a>
+    <div class="game-container">
+        <h1 class="game-title">🍵 Make Your Matcha</h1>
+        <canvas id="matchaCanvas" width="800" height="600"></canvas>
+        <button id="stopMeasuringButton">Done Measuring</button>
+        <p id="instructionText" class="instruction-text">Click the matcha tub to open it.</p>
+    </div>
+    <script src="/static/games/matcha/matcha-game.js"></script>
+</body>
+</html>
+
