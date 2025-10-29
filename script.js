@@ -83,8 +83,28 @@ function updateUIWithResults(result) {
 }
 
 // Sign in button
-signInButton.addEventListener('click', () => {
+signInButton.addEventListener('click', async () => {
     alert('Successfully signed in! Welcome to Performative App.');
-    // In a real app, you would redirect to the main app page
+
+    // Play performative music (Laufey, beabadoobee, etc.)
+    const audio = document.getElementById('performative-audio');
+    if (audio) {
+        try {
+            await audio.play();
+            console.log('🎶 Music started');
+        } catch (err) {
+            console.warn('Autoplay blocked:', err);
+            // Fallback button if autoplay is blocked
+            const fallback = document.createElement('button');
+            fallback.textContent = 'Click to start music 🎵';
+            fallback.className = 'btn';
+            fallback.style.marginTop = '20px';
+            fallback.onclick = () => audio.play();
+            document.body.appendChild(fallback);
+        }
+    }
+
+    // You can redirect or reveal your app content here
+    // window.location.href = "main.html";
 });
 
