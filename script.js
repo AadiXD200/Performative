@@ -104,7 +104,6 @@ signInButton.addEventListener('click', async () => {
         }
     }
 
-    // You can redirect or reveal your app content here
-    // window.location.href = "main.html";
+ 
 });
 
