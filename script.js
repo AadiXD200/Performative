@@ -23,48 +23,60 @@ startCameraButton.addEventListener('click', async () => {
 });
 
 // Capture and analyze image
-captureButton.addEventListener('click', () => {
+captureButton.addEventListener('click', async () => {
     // Draw current video frame to canvas
     const context = canvas.getContext('2d');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    // Simulate object detection (in a real app, this would be sent to a backend)
-    simulateObjectDetection();
-    
-    // Show results section
-    resultsSection.style.display = 'block';
+
+    // Get image data from canvas
+    const imageData = canvas.toDataURL('image/jpeg');
+
+    // Send image to backend for detection
+    try {
+        const response = await fetch('http://127.0.0.1:5000/detect-objects', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ image: imageData }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        updateUIWithResults(result);
+
+    } catch (error) {
+        console.error('Error sending image to backend:', error);
+        verificationText.textContent = 'Error communicating with the server. Please try again.';
+        verificationText.className = 'failure';
+    } finally {
+        // Show results section regardless of success or failure
+        resultsSection.style.display = 'block';
+    }
 });
 
-// Simulate object detection (this would be done by a backend in a real app)
-function simulateObjectDetection() {
-    // Generate random detection results for demonstration
-    const objects = ['matcha', 'earphones', 'plushie', 'camera', 'books'];
-    const detectedObjects = [];
-    
-    objects.forEach(object => {
-        // 60% chance of detecting each object for demo purposes
-        const isDetected = Math.random() < 0.6;
-        
-        const objectElement = document.querySelector(`.object-item[data-object="${object}"] .object-status`);
-        if (isDetected) {
-            objectElement.textContent = 'Detected';
-            objectElement.className = 'object-status detected';
-            detectedObjects.push(object);
-        } else {
-            objectElement.textContent = 'Not detected';
-            objectElement.className = 'object-status not-detected';
-        }
+function updateUIWithResults(result) {
+    const allObjects = ['matcha', 'earphones', 'plushie', 'camera', 'books'];
+    const detectedObjects = result.detected_objects || [];
+
+    allObjects.forEach(object => {
+        const objectStatusElement = document.querySelector(`.object-item[data-object="${object}"] .object-status`);
+        const isDetected = detectedObjects.includes(object);
+        objectStatusElement.textContent = isDetected ? 'Detected' : 'Not Detected';
+        objectStatusElement.className = `object-status ${isDetected ? 'detected' : 'not-detected'}`;
     });
-    
-    // Check if user has at least 2 objects
-    if (detectedObjects.length >= 2) {
-        verificationText.textContent = `Success! You have ${detectedObjects.length} performative objects. You can sign in.`;
+
+    if (result.can_sign_in) {
+        verificationText.textContent = `Success! You have ${result.count} performative objects. You can sign in.`;
         verificationText.className = 'success';
         signInButton.disabled = false;
     } else {
-        verificationText.textContent = `You only have ${detectedObjects.length} performative objects. You need at least 2 to sign in.`;
+        verificationText.textContent = `You only have ${result.count} performative objects. You need at least 2 to sign in.`;
         verificationText.className = 'failure';
         signInButton.disabled = true;
     }

@@ -6,7 +6,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    background: linear-gradient(135deg, #8bb483 0%, #ffd572 100%);
     color: #333;
     min-height: 100vh;
     display: flex;
@@ -25,7 +25,7 @@ body {
 }
 
 header {
-    background: linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%);
+    background: linear-gradient(135deg, #72a669 0%, #ffd572 100%);
     color: white;
     padding: 30px;
     text-align: center;
@@ -75,7 +75,7 @@ main {
 }
 
 .btn {
-    background: linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%);
+    background: linear-gradient(135deg, #54834c 0%, #ffd572 100%);
     color: white;
     border: none;
     padding: 12px 24px;
@@ -102,7 +102,7 @@ main {
 .results-section h2 {
     margin-bottom: 20px;
     text-align: center;
-    color: #4a00e0;
+    color: #e0bb00;
 }
 
 .objects-list {

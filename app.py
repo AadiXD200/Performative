@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+import base64
+import random
+
 import cv2
 import numpy as np
-import base64
-import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -16,8 +17,6 @@ def detect_objects(image):
     In a real implementation, this would use a model like YOLO, SSD, etc.
     """
     # For demonstration, we'll return random results
-    import random
-    
     objects_to_detect = ['matcha', 'earphones', 'plushie', 'camera', 'books']
     detected_objects = []
     
