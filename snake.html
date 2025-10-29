@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            font-family: 'Arial', sans-serif;
+        }
+
+        .game-container {
+            background: #ff69b4;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .score-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .apple-icon {
+            font-size: 32px;
+        }
+
+        .score {
+            font-size: 32px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .control-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        .game-board {
+            width: 600px;
+            height: 600px;
+            background: #ffb6d9;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+        }
+
+        .tile-light {
+            background: #ffc9e3;
+        }
+
+        .tile-dark {
+            background: #ffa3d7;
+        }
+
+        .snake-segment {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #ff1493;
+            border-radius: 12px;
+            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            will-change: transform;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .snake-head {
+            background-size: cover;
+            background-position: center;
+            border-radius: 14px;
+            z-index: 10;
+            transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .apple {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            z-index: 5;
+            animation: matchaFloat 2s ease-in-out infinite;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        @keyframes matchaFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-3px) scale(1.05); }
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 20, 147, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .start-screen h2 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .start-screen p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .arrow-keys {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .arrow-key {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin: 5px;
+        }
+
+        .start-btn {
+            background: #ff1493;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            background: #c71585;
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="score-container">
+                <span class="apple-icon">🍵</span>
+                <span class="score" id="score">0</span>
+            </div>
+            <div class="controls">
+                <button class="control-btn" id="fullscreen">
+                    <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                </button>
+                <button class="control-btn" id="sound">
+                    <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+                </button>
+                <button class="control-btn" id="close">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="game-board" id="gameBoard">
+            <div class="start-screen" id="startScreen">
+                <h2>Performative Snake Game 🐍🍵</h2>
+                <p>Use arrow keys to control the snake</p>
+                <div class="arrow-keys">
+                    <div class="arrow-key">↑</div>
+                    <div class="arrow-key">↓</div>
+                    <div class="arrow-key">←</div>
+                    <div class="arrow-key">→</div>
+                </div>
+                <button class="start-btn" id="startBtn">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const startScreen = document.getElementById('startScreen');
+        const startBtn = document.getElementById('startBtn');
+        const scoreDisplay = document.getElementById('score');
+        const fullscreenBtn = document.getElementById('fullscreen');
+        const closeBtn = document.getElementById('close');
+
+        const GRID_SIZE = 12;
+        const CELL_SIZE = 50;
+        let snake = [{x: 3, y: 6}];
+        let direction = {x: 1, y: 0};
+        let nextDirection = {x: 1, y: 0};
+        let apple = {x: 8, y: 6};
+        let score = 0;
+        let gameLoop = null;
+        let speed = 200;
+        let snakeElements = [];
+
+        //checkboard background
+        for (let y = 0; y < GRID_SIZE; y++) {
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const tile = document.createElement('div');
+                tile.className = 'tile ' + ((x + y) % 2 === 0 ? 'tile-light' : 'tile-dark');
+                tile.style.left = x * CELL_SIZE + 'px';
+                tile.style.top = y * CELL_SIZE + 'px';
+                gameBoard.appendChild(tile);
+            }
+        }
+
+        function createSnakeSegment(x, y, isHead = false) {
+            const segment = document.createElement('div');
+            segment.className = 'snake-segment';
+            if (isHead) {
+                segment.classList.add('snake-head');
+                segment.style.backgroundImage = 'url(https://cdn.shopify.com/s/files/1/0954/9787/9851/files/PerformativeMale-26.jpg?v=1761766678)';
+            }
+            segment.style.left = x * CELL_SIZE + 'px';
+            segment.style.top = y * CELL_SIZE + 'px';
+            gameBoard.appendChild(segment);
+            return segment;
+        }
+
+        function createApple(x, y) {
+            const appleEl = document.createElement('div');
+            appleEl.className = 'apple';
+            appleEl.style.backgroundImage = 'url(https://cdn.shopify.com/s/files/1/0954/9787/9851/files/Starbucks-matcha-latte-recipe-8-removebg-preview.png?v=1761770420)';
+            appleEl.style.left = x * CELL_SIZE + 'px';
+            appleEl.style.top = y * CELL_SIZE + 'px';
+            gameBoard.appendChild(appleEl);
+            return appleEl;
+        }
+
+        function placeApple() {
+            let newX, newY;
+            do {
+                newX = Math.floor(Math.random() * GRID_SIZE);
+                newY = Math.floor(Math.random() * GRID_SIZE);
+            } while (snake.some(seg => seg.x === newX && seg.y === newY));
+            apple = {x: newX, y: newY};
+        }
+
+        function drawGame() {
+            if (snakeElements.length !== snake.length) {
+                //clear
+                document.querySelectorAll('.snake-segment').forEach(el => el.remove());
+                snakeElements = [];
+                
+                snake.forEach((segment, index) => {
+                    const el = createSnakeSegment(segment.x, segment.y, index === 0);
+                    snakeElements.push(el);
+                });
+            } else {
+                //smoothly move through the board
+                snake.forEach((segment, index) => {
+                    const el = snakeElements[index];
+                    el.style.left = segment.x * CELL_SIZE + 'px';
+                    el.style.top = segment.y * CELL_SIZE + 'px';
+                });
+            }
+
+            //clear
+            document.querySelectorAll('.apple').forEach(el => el.remove());
+            createApple(apple.x, apple.y);
+        }
+
+        function moveSnake() {
+            direction = nextDirection;
+            const head = {
+                x: snake[0].x + direction.x,
+                y: snake[0].y + direction.y
+            };
+
+            //check when walll crashes
+            if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
+                gameOver();
+                return;
+            }
+
+            //check self crash
+            if (snake.some(seg => seg.x === head.x && seg.y === head.y)) {
+                gameOver();
+                return;
+            }
+
+            snake.unshift(head);
+
+            //check for apple collision
+            if (head.x === apple.x && head.y === apple.y) {
+                score++;
+                scoreDisplay.textContent = score;
+                placeApple();
+                //increase speed after a bit
+                if (speed > 60) {
+                    speed -= 3;
+                    clearInterval(gameLoop);
+                    gameLoop = setInterval(moveSnake, speed);
+                }
+            } else {
+                snake.pop();
+            }
+
+            drawGame();
+        }
+
+        function gameOver() {
+            clearInterval(gameLoop);
+            startScreen.innerHTML = `
+                <h2>Game Over!</h2>
+                <p>Your Score: ${score}</p>
+                <button class="start-btn" onclick="restartGame()">Play Again</button>
+            `;
+            startScreen.classList.remove('hidden');
+        }
+
+        function restartGame() {
+            snake = [{x: 3, y: 6}];
+            direction = {x: 1, y: 0};
+            nextDirection = {x: 1, y: 0};
+            score = 0;
+            speed = 200;
+            snakeElements = [];
+            scoreDisplay.textContent = score;
+            placeApple();
+            startGame();
+        }
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            drawGame();
+            gameLoop = setInterval(moveSnake, speed);
+        }
+
+        //controls for moving around the board
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (direction.y === 0) nextDirection = {x: 0, y: -1};
+                    e.preventDefault();
+                    break;
+                case 'ArrowDown':
+                    if (direction.y === 0) nextDirection = {x: 0, y: 1};
+                    e.preventDefault();
+                    break;
+                case 'ArrowLeft':
+                    if (direction.x === 0) nextDirection = {x: -1, y: 0};
+                    e.preventDefault();
+                    break;
+                case 'ArrowRight':
+                    if (direction.x === 0) nextDirection = {x: 1, y: 0};
+                    e.preventDefault();
+                    break;
+            }
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to quit?')) {
+                clearInterval(gameLoop);
+                window.close();
+            }
+        });
+
+        window.restartGame = restartGame;
+    </script>
+</body>
+</html>
