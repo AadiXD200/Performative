@@ -3,9 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     const scoreElement = document.getElementById('score');
     const livesElement = document.getElementById('lives');
+    const highScoreElement = document.getElementById('highScore');
 
-    // Game Constants
-    const TILE_SIZE = 24; // Each tile is 24x24 pixels
+    const TILE_SIZE = 30; // Each tile is 30x30 pixels
     const WALL_COLOR = '#F7A8B8'; // Soft Pink
     const DOT_COLOR = '#E597A8'; // Darker Pink
     const POWER_PELLET_COLOR = '#FFFFFF'; // White
@@ -16,16 +16,36 @@ document.addEventListener('DOMContentLoaded', () => {
         INKY: '#C7C7C7',   // Light Grey
         CLYDE: '#A0A0A0'   // Medium Grey
     };
+    const FRIGHTENED_GHOST_COLOR = '#2121DE'; // Blue
+    const EYES_COLOR = '#FFFFFF';
     const PACMAN_RADIUS = TILE_SIZE / 2 - 2; // Pac-Man radius, slightly smaller than tile
-    const PACMAN_SPEED = 2; // Pixels per frame
-    const GHOST_SPEED = 1.5; // Ghosts are slightly slower
+    const PACMAN_SPEED = 5; // Scaled up for larger tiles
+    const GHOST_SPEED = 3.75; // Scaled up for larger tiles
+    const FRIGHTENED_GHOST_SPEED = 1.875; // Scaled up for larger tiles
     const SCORE_DOT = 10;
     const SCORE_POWER_PELLET = 50;
+    const SCORE_GHOST = 200;
+
+    // Image for Pac-Man
+    const pacmanImage = new Image();
+    const appleImage = new Image();
+    const ghostImage = new Image();
+    const matchaImage = new Image();
+    const scaredImage = new Image();
+    let imagesAreLoaded = false;
+
+    pacmanImage.src = 'assets/profile.png';
+    appleImage.src = 'assets/apple.png';
+    ghostImage.src = 'assets/ghost.png';
+    matchaImage.src = 'assets/matcha.png';
+    scaredImage.src = 'assets/scared.png';
 
     // Game State Variables
     let score = 0;
     let lives = 3;
+    let highScore = 0;
     let ghosts = [];
+    let map = []; // The game's current map state, will be modified
     let pacman = {
         x: 0, // Will be initialized to starting tile center
         y: 0, // Will be initialized to starting tile center
@@ -37,14 +57,20 @@ document.addEventListener('DOMContentLoaded', () => {
         direction: null, // Current grid direction (UP, DOWN, LEFT, RIGHT)
         nextDirection: null // Next desired grid direction
     };
+    let ghostsEatenInFrightenedMode = 0; // To track consecutive ghosts eaten for combo points
+    let frightenedTimer = 0;
+    const FRIGHTENED_DURATION = 7000; // 7 seconds in milliseconds
     const gameOverScreen = document.getElementById('gameOverScreen');
+    const winScreen = document.getElementById('winScreen');
+    const restartButton = document.getElementById('restartButton');
+    const restartButtonWin = document.getElementById('restartButtonWin');
     let animationFrameId;
     let lastFrameTime = 0;
     const FPS = 60;
     const FRAME_INTERVAL = 1000 / FPS;
 
-    // Maze layout: 1=wall, 2=dot, 3=power pellet, 0=empty
-    const map = [
+    // Original maze layout, will not be modified
+    const ORIGINAL_MAP = [
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         [1,2,2,2,2,2,2,2,2,2,2,2,2,1,1,2,2,2,2,2,2,2,2,2,2,2,2,1],
         [1,3,1,1,1,1,2,1,1,1,1,1,2,1,1,2,1,1,1,1,1,2,1,1,1,1,3,1],
@@ -125,10 +151,17 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} y - The y-coordinate in the map grid.
      */
     function drawDot(x, y) {
-        ctx.fillStyle = DOT_COLOR;
-        ctx.beginPath();
-        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 6, 0, Math.PI * 2);
-        ctx.fill();
+        if (imagesAreLoaded) {
+            const size = TILE_SIZE / 3; // Proportional to original pellet size
+            const drawX = x * TILE_SIZE + (TILE_SIZE - size) / 2;
+            const drawY = y * TILE_SIZE + (TILE_SIZE - size) / 2;
+            ctx.drawImage(appleImage, drawX, drawY, size, size);
+        } else {
+            ctx.fillStyle = DOT_COLOR;
+            ctx.beginPath();
+            ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
     /**
@@ -137,47 +170,32 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {number} y - The y-coordinate in the map grid.
      */
     function drawPowerPellet(x, y) {
-        ctx.fillStyle = POWER_PELLET_COLOR;
-        ctx.beginPath();
-        ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (imagesAreLoaded) {
+            const size = TILE_SIZE * 0.8; // Keep size similar to original big pellets
+            const drawX = x * TILE_SIZE + (TILE_SIZE - size) / 2;
+            const drawY = y * TILE_SIZE + (TILE_SIZE - size) / 2;
+            ctx.drawImage(matchaImage, drawX, drawY, size, size);
+        } else {
+            // Fallback drawing if image fails to load
+            ctx.fillStyle = POWER_PELLET_COLOR;
+            ctx.beginPath();
+            ctx.arc(x * TILE_SIZE + TILE_SIZE / 2, y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 
     /**
      * Draws Pac-Man on the canvas.
      */
     function drawPacman() {
-        ctx.fillStyle = PACMAN_COLOR;
-        ctx.beginPath();
-        let startAngle, endAngle;
+        ctx.save(); // Save the current canvas state
+        ctx.translate(pacman.x, pacman.y); // Move the origin to pacman's position
+        
+        // Draw the image centered on the new origin
+        const size = pacman.radius * 2;
+        ctx.drawImage(pacmanImage, -pacman.radius, -pacman.radius, size, size);
 
-        // Determine mouth orientation based on direction
-        switch (pacman.direction) {
-            case DIRECTIONS.RIGHT:
-                startAngle = pacman.mouthOpen;
-                endAngle = Math.PI * 2 - pacman.mouthOpen;
-                break;
-            case DIRECTIONS.LEFT:
-                startAngle = Math.PI + pacman.mouthOpen;
-                endAngle = Math.PI - pacman.mouthOpen;
-                break;
-            case DIRECTIONS.UP:
-                startAngle = Math.PI * 1.5 + pacman.mouthOpen;
-                endAngle = Math.PI * 0.5 - pacman.mouthOpen;
-                break;
-            case DIRECTIONS.DOWN:
-                startAngle = Math.PI * 0.5 + pacman.mouthOpen;
-                endAngle = Math.PI * 1.5 - pacman.mouthOpen;
-                break;
-            default: // STOP or initial state, face right
-                startAngle = pacman.mouthOpen;
-                endAngle = Math.PI * 2 - pacman.mouthOpen;
-                break;
-        }
-
-        ctx.arc(pacman.x, pacman.y, pacman.radius, startAngle, endAngle);
-        ctx.lineTo(pacman.x, pacman.y); // Draw line to center to close mouth
-        ctx.fill();
+        ctx.restore(); // Restore the canvas to its original state
     }
 
     /**
@@ -185,32 +203,14 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {object} ghost - The ghost object to draw.
      */
     function drawGhost(ghost) {
-        const bodyHeight = TILE_SIZE * 0.8;
-        const bodyWidth = TILE_SIZE * 0.9;
-        const footRadius = bodyWidth / 6;
-        const eyeRadius = TILE_SIZE / 8;
-        const pupilRadius = TILE_SIZE / 16;
-
-        ctx.fillStyle = ghost.color;
-        ctx.beginPath();
-        // Main body
-        ctx.arc(ghost.x, ghost.y - bodyHeight / 4, bodyWidth / 2, Math.PI, 0);
-        ctx.rect(ghost.x - bodyWidth / 2, ghost.y - bodyHeight / 4, bodyWidth, bodyHeight);
-        ctx.fill();
-
-        // Feet
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.arc(ghost.x - bodyWidth / 2 + (i * 2 + 1) * footRadius, ghost.y + bodyHeight / 2 - footRadius, footRadius, 0, Math.PI);
-            ctx.fill();
+        const size = TILE_SIZE;
+        if (ghost.mode === 'FRIGHTENED') {
+            // Draw the scared ghost image
+            ctx.drawImage(scaredImage, ghost.x - size / 2, ghost.y - size / 2, size, size);
+        } else {
+            // Draw the ghost image
+            ctx.drawImage(ghostImage, ghost.x - size / 2, ghost.y - size / 2, size, size);
         }
-
-        // Eyes
-        ctx.fillStyle = 'white';
-        ctx.beginPath();
-        ctx.arc(ghost.x - bodyWidth / 4, ghost.y - bodyHeight / 4, eyeRadius, 0, Math.PI * 2);
-        ctx.arc(ghost.x + bodyWidth / 4, ghost.y - bodyHeight / 4, eyeRadius, 0, Math.PI * 2);
-        ctx.fill();
     }
 
     /**
@@ -232,8 +232,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const dy = pacman.y - ghost.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < pacman.radius + TILE_SIZE / 2 - 4) { // Collision
-                handlePlayerDeath();
+            if (distance < pacman.radius + TILE_SIZE / 2 - 4) { 
+                if (ghost.mode === 'FRIGHTENED') {
+                    // Eat the ghost and get combo points!
+                    const points = SCORE_GHOST * Math.pow(2, ghostsEatenInFrightenedMode);
+                    score += points;
+                    ghostsEatenInFrightenedMode++;
+                    scoreElement.textContent = score;
+                    ghost.mode = 'EATEN';
+                    resetSingleGhost(ghost);
+                } else if (ghost.mode !== 'EATEN') {
+                    handlePlayerDeath();
+                }
                 break; // Only handle one death per frame
             }
         }
@@ -252,8 +262,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function gameOver() {
+        updateHighScore();
         cancelAnimationFrame(animationFrameId);
         gameOverScreen.style.display = 'flex';
+    }
+
+    function gameWon() {
+        updateHighScore();
+        cancelAnimationFrame(animationFrameId);
+        winScreen.style.display = 'flex';
+    }
+
+    function checkWinCondition() {
+        // Check if any dots (2) or power pellets (3) are left
+        for (let y = 0; y < map.length; y++) {
+            for (let x = 0; x < map[y].length; x++) {
+                if (map[y][x] === 2 || map[y][x] === 3) {
+                    return; // Found a pellet, game is not over
+                }
+            }
+        }
+        // If we get here, no pellets are left
+        gameWon();
     }
 
     function updateGhosts() {
@@ -263,6 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function moveGhost(ghost) {
+        if (ghost.mode === 'EATEN') {
+            // Ghost is heading back to the box, can be made to move faster
+            // For now, it just reappears. A better implementation would pathfind back.
+        }
         const onGridCenter = (ghost.x % TILE_SIZE === TILE_SIZE / 2) && (ghost.y % TILE_SIZE === TILE_SIZE / 2);
 
         if (onGridCenter) {
@@ -270,8 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentGridY = Math.floor(ghost.y / TILE_SIZE);
 
             // Simple AI: Try to move towards Pac-Man
-            const targetX = pacman.x;
-            const targetY = pacman.y;
+            let targetX = pacman.x;
+            let targetY = pacman.y;
+
+            if (ghost.mode === 'FRIGHTENED') {
+                // When frightened, run away (target a far corner)
+                targetX = TILE_SIZE;
+                targetY = TILE_SIZE;
+            }
 
             const possibleDirections = [];
             const opposites = {
@@ -301,13 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (possibleDirections.length === 1) {
                     bestDirection = possibleDirections[0];
                 } else {
-                    // Choose the direction that minimizes distance to target
+                    // Choose the direction that minimizes/maximizes distance to target
                     for (const move of possibleDirections) {
                         const nextX = ghost.x + move.dir.dx * TILE_SIZE;
                         const nextY = ghost.y + move.dir.dy * TILE_SIZE;
                         const distance = Math.sqrt(Math.pow(nextX - targetX, 2) + Math.pow(nextY - targetY, 2));
 
-                        if (distance < minDistance) {
+                        // If frightened, we want to maximize distance (run away)
+                        // But a simpler approach is to just pick a random valid direction
+                        if (ghost.mode === 'FRIGHTENED') {
+                            // Simple random movement when frightened
+                            bestDirection = possibleDirections[Math.floor(Math.random() * possibleDirections.length)];
+                            break; // Exit loop once a random direction is chosen
+                        }
+
+                        if (distance < minDistance) { // For CHASE mode
                             minDistance = distance;
                             bestDirection = move;
                         }
@@ -323,8 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bestDirection) {
                 ghost.direction = bestDirection.dir;
                 ghost.directionName = bestDirection.name;
-                ghost.dx = ghost.direction.dx * GHOST_SPEED;
-                ghost.dy = ghost.direction.dy * GHOST_SPEED;
+                const speed = (ghost.mode === 'FRIGHTENED') ? FRIGHTENED_GHOST_SPEED : GHOST_SPEED;
+                ghost.dx = ghost.direction.dx * speed;
+                ghost.dy = ghost.direction.dy * speed;
             }
         }
 
@@ -340,6 +389,20 @@ document.addEventListener('DOMContentLoaded', () => {
      * Updates the game state (Pac-Man's position, score, etc.).
      */
     function update() {
+        const now = performance.now();
+        const delta = now - (lastFrameTime || now);
+        lastFrameTime = now;
+
+        // Handle frightened mode timer
+        if (frightenedTimer > 0) {
+            frightenedTimer -= delta;
+            if (frightenedTimer <= 0) {
+                ghosts.forEach(ghost => {
+                    if (ghost.mode === 'FRIGHTENED') ghost.mode = 'CHASE';
+                });
+            }
+        }
+
         // Animate Pac-Man's mouth
         pacman.mouthOpen += pacman.mouthSpeed;
         if (pacman.mouthOpen > Math.PI / 2 || pacman.mouthOpen < 0) {
@@ -404,11 +467,18 @@ document.addEventListener('DOMContentLoaded', () => {
             map[pacmanGridY][pacmanGridX] = 0; // Remove dot
             score += SCORE_DOT;
             scoreElement.textContent = score;
+            checkWinCondition();
         } else if (map[pacmanGridY][pacmanGridX] === 3) { // Power Pellet
             map[pacmanGridY][pacmanGridX] = 0; // Remove power pellet
             score += SCORE_POWER_PELLET;
             scoreElement.textContent = score;
-            // TODO: Implement ghost frightening logic here
+            ghostsEatenInFrightenedMode = 0; // Reset the combo counter for the new power pellet
+            frightenedTimer = FRIGHTENED_DURATION;
+            ghosts.forEach(ghost => {
+                // Only frighten ghosts that aren't already eaten and heading home
+                if (ghost.mode !== 'EATEN') ghost.mode = 'FRIGHTENED';
+            });
+            checkWinCondition();
         }
 
         // Update ghosts and check for collisions
@@ -443,6 +513,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    restartButton.addEventListener('click', () => {
+        initGame();
+    });
+
+    restartButtonWin.addEventListener('click', () => {
+        initGame();
+    });
+
+    /**
+     * Cookie helper functions
+     */
+    function setCookie(name, value, days) {
+        let expires = "";
+        if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+        }
+        document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Lax";
+    }
+
+    function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+            if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+        }
+        return null;
+    }
+
+    /**
+     * Updates the high score if the current score is greater.
+     */
+    function updateHighScore() {
+        if (score > highScore) {
+            highScore = score;
+            setCookie('pacmanHighScore', highScore, 365);
+            highScoreElement.textContent = highScore;
+        }
+    }
+
     /**
      * Initializes the game state.
      */
@@ -455,17 +568,27 @@ document.addEventListener('DOMContentLoaded', () => {
         pacman.nextDirection = null;
 
         // Reset ghost positions and states
-        ghosts.forEach(ghost => {
-            ghost.x = ghost.startX * TILE_SIZE + TILE_SIZE / 2;
-            ghost.y = ghost.startY * TILE_SIZE + TILE_SIZE / 2;
-            ghost.direction = DIRECTIONS.STOP;
-            ghost.directionName = 'STOP';
-            ghost.dx = 0;
-            ghost.dy = 0;
-        });
+        ghosts.forEach(resetSingleGhost);
+    }
+
+    /**
+     * Resets a single ghost to its starting position and state.
+     * @param {object} ghost - The ghost to reset.
+     */
+    function resetSingleGhost(ghost) {
+        ghost.x = ghost.startX * TILE_SIZE + TILE_SIZE / 2;
+        ghost.y = ghost.startY * TILE_SIZE + TILE_SIZE / 2;
+        ghost.direction = DIRECTIONS.STOP;
+        ghost.directionName = 'STOP';
+        ghost.dx = 0;
+        ghost.dy = 0;
+        ghost.mode = 'CHASE'; // Default mode
     }
 
     function initGame() {
+        // Create a fresh copy of the map for the new game
+        map = ORIGINAL_MAP.map(row => [...row]);
+
         // Create ghosts
         ghosts = [
             { name: 'Blinky', color: GHOST_COLORS.BLINKY, startX: 13, startY: 11 },
@@ -480,25 +603,52 @@ document.addEventListener('DOMContentLoaded', () => {
         lives = 3;
         scoreElement.textContent = score;
         livesElement.textContent = lives;
+
+        highScore = parseInt(getCookie('pacmanHighScore')) || 0;
+        highScoreElement.textContent = highScore;
+
         gameOverScreen.style.display = 'none';
+        winScreen.style.display = 'none';
 
         if (animationFrameId) {
             cancelAnimationFrame(animationFrameId);
         }
+        lastFrameTime = performance.now();
         gameLoop();
     }
 
     /**
      * The main game loop.
      */
-    function gameLoop() {
-        update();
-        // Clear canvas and redraw everything
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawMap(); // This also calls drawPacman
+    function gameLoop(timestamp) {
         animationFrameId = requestAnimationFrame(gameLoop);
+
+        if (timestamp - lastFrameTime > FRAME_INTERVAL) {
+            lastFrameTime = timestamp - ((timestamp - lastFrameTime) % FRAME_INTERVAL);
+
+            update();
+            // Clear canvas and redraw everything
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawMap(); // This also calls drawPacman and drawGhost
+        }
     }
 
-    initGame();
-    gameLoop();
+    /**
+     * Preloads all game images and starts the game when done.
+     */
+    function loadImagesAndStart() {
+        const images = [pacmanImage, appleImage, ghostImage, matchaImage, scaredImage];
+        let loadedCount = 0;
+
+        const onImageLoad = () => {
+            loadedCount++;
+            if (loadedCount === images.length) {
+                imagesAreLoaded = true;
+                initGame();
+            }
+        };
+
+        images.forEach(img => { img.onload = onImageLoad; img.onerror = onImageLoad; });
+    }
+    loadImagesAndStart();
 });

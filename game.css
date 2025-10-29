@@ -27,8 +27,12 @@ body {
     display: flex;
     justify-content: space-between;
     font-size: 1rem;
-    margin-bottom: 15px;
+    margin-top: 15px;
     padding: 0 10px;
+    color: #4A4A4A;
+}
+
+.high-score {
     color: #4A4A4A;
 }
 
@@ -61,4 +65,26 @@ canvas#gameCanvas {
     align-items: center;
     font-size: 2rem;
     color: #FF69B4; /* Hot pink "Game Over" text */
+}
+
+.overlay-content {
+    text-align: center;
+}
+
+button#restartButton,
+button#restartButtonWin {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #FF69B4; /* Hot pink */
+    border: 2px solid #F7A8B8; /* Soft pink border */
+    padding: 10px 20px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button#restartButton:hover,
+button#restartButtonWin:hover {
+    background-color: #E597A8; /* Darker pink on hover */
 }
