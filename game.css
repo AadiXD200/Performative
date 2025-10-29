@@ -1,0 +1,90 @@
+body {
+    background-color: #FFF5F7; /* Very light pink background */
+    color: #4A4A4A; /* Dark grey text for a softer look */
+    font-family: 'Press Start 2P', cursive;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+}
+.game-container {
+    border: 4px solid #F7A8B8; /* Soft pink border */
+    padding: 15px;
+    background-color: #fff;
+    box-shadow: 0 0 20px rgba(247, 168, 184, 0.5);
+}
+
+.game-header h1 {
+    color: #FF69B4; /* Hot pink title */
+    font-size: 2.5rem;
+    margin: 0 0 10px 0;
+    text-shadow: none; /* Removed shadow for a cleaner look */
+}
+
+.game-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1rem;
+    margin-top: 15px;
+    padding: 0 10px;
+    color: #4A4A4A;
+}
+
+.high-score {
+    color: #4A4A4A;
+}
+
+.score {
+    color: #4A4A4A;
+}
+
+.lives {
+    color: #4A4A4A;
+}
+
+.game-board {
+    position: relative; /* Needed for positioning the overlay */
+}
+
+canvas#gameCanvas {
+    background-color: #FFF5F7; /* Light pink canvas background */
+    border: 2px solid #F7A8B8;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7); /* Light overlay */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    color: #FF69B4; /* Hot pink "Game Over" text */
+}
+
+.overlay-content {
+    text-align: center;
+}
+
+button#restartButton,
+button#restartButtonWin {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1rem;
+    color: #fff;
+    background-color: #FF69B4; /* Hot pink */
+    border: 2px solid #F7A8B8; /* Soft pink border */
+    padding: 10px 20px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button#restartButton:hover,
+button#restartButtonWin:hover {
+    background-color: #E597A8; /* Darker pink on hover */
+}
