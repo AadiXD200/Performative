@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (whisk.holding && gameState === 'WHISKING') {
             const moveDistance = Math.sqrt((mouse.x - lastMouse.x)**2 + (mouse.y - lastMouse.y)**2);
             if (moveDistance > 0 && isMouseIn(bowl)) { // Only increase froth if moving inside the bowl
-                bowl.frothLevel = Math.min(100, bowl.frothLevel + moveDistance * 0.1); // Slower froth increase
+                bowl.frothLevel = Math.min(100, bowl.frothLevel + moveDistance * 0.01); // Slower froth increase
             }
             whisk.x = mouse.x - whisk.width / 2;
             whisk.y = mouse.y - whisk.height / 2;
