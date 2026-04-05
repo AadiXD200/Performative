@@ -1,10 +1,17 @@
 # 🎭 Performative Male App
 
+> 🏆 **Winner — Best Application of Google Gemini API** at [UofT Hacks: Hack or Treat](https://devpost.com/software/performative-male-r7xflw)
+
+**[Watch the demo on YouTube](https://www.youtube.com/watch?v=iCuC8lhZV8s)** · **[View on Devpost](https://devpost.com/software/performative-male-r7xflw)**
+
+---
+
 A performative aesthetic detection app that combines real-time computer vision, AI image transformation, and retro arcade games. Prove your performativity through your possessions (matcha, wired earphones, plushies, cameras, and feminist literature), then enjoy games featuring your AI-transformed persona.
 
 ![Performative Male](https://img.shields.io/badge/Aesthetic-Performative-pink?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)
+![Hackathon Winner](https://img.shields.io/badge/UofT%20Hacks-Best%20Gemini%20API-gold?style=for-the-badge)
 
 ## ✨ Features
 
